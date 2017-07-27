@@ -37,21 +37,23 @@ fn handle_connection(mut stream: TcpStream) {
         	None => return,
         };
 
-        let method = first.next()
-        	.unwrap_or_else(|| 	{
-        		println!("No method");
-    			write!(&stream, "{} No method", HttpStatus::Error).unwrap();
+    	let method = match first.next() {
+    		Some(x) => x,
+    		None => {
+    			write!(&stream, "{}No method", HttpStatus::Error).unwrap();
     			stream.flush().unwrap();
-    			"GET"
-    		});
+    			return;
+			}
+    	};
 
-        let path = first.next()
-        	.unwrap_or_else(|| {
-        		println!("No path requested");
-    			write!(&stream, "{} No path requested", HttpStatus::Error).unwrap();
+        let path = match first.next() {
+        	Some(x) => x,
+        	None => {
+        		write!(&stream, "{}No path requested", HttpStatus::Error).unwrap();
     			stream.flush().unwrap();
-    			"/"
-    		});
+    			return;
+        	}
+        };
 
         if path.find("api").is_some() {
         	if let Some(endpoint) = path.split('/').last() {
@@ -61,7 +63,6 @@ fn handle_connection(mut stream: TcpStream) {
 
         		let mut parse = endpoint.split('?');
         		if let Some(function) = parse.next() {
-
         			if let Some(arguments) = parse.next() {
         				for args in arguments.split('&') {
 	        				println!("{} {}", function, args);
@@ -69,13 +70,10 @@ fn handle_connection(mut stream: TcpStream) {
         			}
 
         		}
-
-
-
         	}
         } else {
         	println!("Not a valid API endpoint: {}", &path);
-    	 	write!(&stream, "{}", HttpStatus::Forbidden).unwrap();
+    	 	write!(&stream, "{}Not a valid API endpoint: {}", HttpStatus::Forbidden, &path).unwrap();
         }
 	    stream.flush().unwrap();
 }
